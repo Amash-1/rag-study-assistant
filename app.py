@@ -2,25 +2,24 @@
 # RAG Study Assistant - app.py
 # ==============================
 
-import os
 import streamlit as st
+import os
+from dotenv import load_dotenv
+
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import Chroma
-from dotenv import load_dotenv
 
 # ==============================
-# Load environment variables from .env (optional)
+# Load environment variables
 # ==============================
-load_dotenv()  # loads .env if it exists
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or "AIzaSyDL-ASniJ7-61zLWnPccGGt3mFxvQjvWQ4"
+load_dotenv()  # Reads .env file
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not GOOGLE_API_KEY:
-    raise ValueError(
-        "Google API key not found. Please set GOOGLE_API_KEY in your .env file "
-        "or directly in this script."
-    )
+    raise ValueError("❌ Google API key not found. Please set GOOGLE_API_KEY in your .env file.")
 
 # ==============================
 # Streamlit UI setup
@@ -30,12 +29,15 @@ st.title("📚 RAG Study Assistant")
 st.markdown("Ask questions about your study material!")
 
 # ==============================
-# Initialize embeddings
+# Initialize embeddings (force CPU on Streamlit Cloud)
 # ==============================
-EMBEDDINGS = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+EMBEDDINGS = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2",
+    model_kwargs={"device": "cpu"}  # ✅ Force CPU so it works on Streamlit Cloud
+)
 
 # ==============================
-# Initialize vectorstore and retriever
+# Initialize retriever
 # ==============================
 VECTORSTORE = Chroma(persist_directory="db", embedding_function=EMBEDDINGS)
 RAG_RETRIEVER = VECTORSTORE.as_retriever()
@@ -43,7 +45,7 @@ RAG_RETRIEVER = VECTORSTORE.as_retriever()
 # ==============================
 # Initialize LLM
 # ==============================
-LLM_MODEL = "gpt-4"  # change if needed
+LLM_MODEL = "gemini-pro"  # You can switch to another Google model if needed
 llm = ChatGoogleGenerativeAI(
     model=LLM_MODEL,
     temperature=0.0,
@@ -69,5 +71,5 @@ if user_input:
 # Optional debug info
 # ==============================
 if st.checkbox("Show debug info"):
-    st.write("Google API Key Loaded:", GOOGLE_API_KEY)
-    st.write("Retriever info:", RAG_RETRIEVER)
+    st.write("✅ Google API Key Loaded:", bool(GOOGLE_API_KEY))
+    st.write("📂 Retriever info:", RAG_RETRIEVER)
