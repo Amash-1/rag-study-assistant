@@ -3,25 +3,24 @@
 # ==============================
 
 import os
-from dotenv import load_dotenv
 import streamlit as st
-
-# LangChain imports
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import Chroma
+from dotenv import load_dotenv
 
 # ==============================
-# Load environment variables
+# Load environment variables from .env (optional)
 # ==============================
-dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
-if not load_dotenv(dotenv_path=dotenv_path):
-    st.warning(".env file not found. Make sure it exists in the same folder as app.py")
+load_dotenv()  # loads .env if it exists
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or "AIzaSyDL-ASniJ7-61zLWnPccGGt3mFxvQjvWQ4"
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
-    raise ValueError("Google API key not found. Please set GOOGLE_API_KEY in your .env file.")
+    raise ValueError(
+        "Google API key not found. Please set GOOGLE_API_KEY in your .env file "
+        "or directly in this script."
+    )
 
 # ==============================
 # Streamlit UI setup
@@ -36,7 +35,7 @@ st.markdown("Ask questions about your study material!")
 EMBEDDINGS = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # ==============================
-# Initialize retriever
+# Initialize vectorstore and retriever
 # ==============================
 VECTORSTORE = Chroma(persist_directory="db", embedding_function=EMBEDDINGS)
 RAG_RETRIEVER = VECTORSTORE.as_retriever()
@@ -44,7 +43,7 @@ RAG_RETRIEVER = VECTORSTORE.as_retriever()
 # ==============================
 # Initialize LLM
 # ==============================
-LLM_MODEL = "gpt-4"  # or any other model you want
+LLM_MODEL = "gpt-4"  # change if needed
 llm = ChatGoogleGenerativeAI(
     model=LLM_MODEL,
     temperature=0.0,
@@ -67,7 +66,7 @@ if user_input:
     st.markdown(f"**Assistant:** {answer}")
 
 # ==============================
-# Optional: Show past queries or logs
+# Optional debug info
 # ==============================
 if st.checkbox("Show debug info"):
     st.write("Google API Key Loaded:", GOOGLE_API_KEY)
