@@ -1,82 +1,71 @@
 # ==============================
-# RAG Study Assistant App
+# app.py – RAG Study Assistant
 # ==============================
 
-# ------------------------------
-# Load environment variables
-# ------------------------------
+# ---------- Load environment variables ----------
 from dotenv import load_dotenv
 import os
 
+# Explicitly load .env file from current folder
 dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
-load_dotenv(dotenv_path=dotenv_path)
+loaded = load_dotenv(dotenv_path=dotenv_path)
+print(f".env loaded: {loaded}")
 
+# Get Google API key
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+print(f"GOOGLE_API_KEY: {GOOGLE_API_KEY}")
+
 if not GOOGLE_API_KEY:
     raise ValueError(
         "Google API key not found. Please set GOOGLE_API_KEY in your .env file."
     )
-print("Google API Key loaded successfully ✅")
 
-# ------------------------------
-# Imports
-# ------------------------------
+# ---------- Imports ----------
+import streamlit as st
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import Chroma
-import streamlit as st
 
-# ------------------------------
-# Embeddings and Retriever Setup
-# ------------------------------
+# ---------- Constants ----------
+LLM_MODEL = "gpt-4"  # or any other model you want
+
+# ---------- Initialize embeddings ----------
 EMBEDDINGS = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
+# ---------- Initialize RAG retriever ----------
 def initialize_retriever():
-    vectorstore = Chroma(persist_directory="db", embedding_function=EMBEDDINGS)
-    retriever = vectorstore.as_retriever()
-    return retriever, vectorstore
+    VECTORSTORE = Chroma(persist_directory="db", embedding_function=EMBEDDINGS)
+    RETRIEVER = VECTORSTORE.as_retriever()
+    return RETRIEVER, VECTORSTORE
 
 RAG_RETRIEVER, VECTORSTORE = initialize_retriever()
 
-# ------------------------------
-# Initialize LLM
-# ------------------------------
-LLM_MODEL = "gpt-3.5-turbo"  # or any supported model
+# ---------- Initialize LLM ----------
 llm = ChatGoogleGenerativeAI(
     model=LLM_MODEL,
     temperature=0.0,
     api_key=GOOGLE_API_KEY
 )
 
-# ------------------------------
-# Streamlit Interface
-# ------------------------------
+# ---------- Streamlit App ----------
 st.set_page_config(page_title="RAG Study Assistant", layout="wide")
 st.title("📚 RAG Study Assistant")
 
-st.write("""
-Welcome! You can:
-- Ask questions about your study material  
-- Request a quiz on any topic  
-- Go through past papers (e.g., 'Let me go through CSC231 2024 past paper')
-""")
+st.write("Ask questions about your study material or request a quiz!")
 
-# User input
-user_input = st.text_input("You:", placeholder="Type your question here...")
+user_input = st.text_input("You:")
 
-if st.button("Submit") and user_input:
-    with st.spinner("Fetching answer..."):
-        try:
-            qa_chain = RetrievalQA.from_chain_type(
-                llm=llm,
-                chain_type="stuff",
-                retriever=RAG_RETRIEVER
-            )
-            answer = qa_chain.run(user_input)
-            st.success(answer)
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-
-st.write("---")
-st.write("Type 'quit' in the input box to exit the conversation.")
+if user_input:
+    # Query the retriever
+    retriever_result = RAG_RETRIEVER.get_relevant_documents(user_input)
+    
+    # Combine retriever results and generate answer
+    chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        retriever=RAG_RETRIEVER
+    )
+    answer = chain.run(user_input)
+    
+    st.write("**Assistant:**", answer)
