@@ -5,7 +5,8 @@ import os
 from langchain.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings
+
 
 # ==============================
 # Load environment variables
@@ -81,3 +82,4 @@ with tab3:
             st.write(past_paper_response)
         else:
             st.warning("Please enter a course code.")
+
